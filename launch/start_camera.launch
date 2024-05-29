@@ -1,0 +1,27 @@
+<launch>
+    <!-- Launch the avt_vimba_camera using its provided launch file -->
+    <include file="$(find avt_vimba_camera)/launch/mono_camera.launch">
+        <arg name="ip" value="10.205.3.35" />
+        <arg name="camera_info_url" value="file:///home/haxybaxy/catkin_ws/src/remote_lab/config/ost.yaml"/>
+    </include>
+
+    <!-- Image rectification -->
+    <node name="image_proc" pkg="image_proc" type="image_proc" output="screen">
+
+        <remap from="camera_info" to="/camera/camera_info"/>
+        <remap from="image_raw" to="/camera/image_raw"/>
+        <remap from="image_rect" to="/camera/image_rect"/>
+    </node>
+
+    <!-- Launch the rosbridge_websocket node -->
+    <node name="rosbridge_websocket" pkg="rosbridge_server" type="rosbridge_websocket" output="screen">
+        <param name="port" value="9090"/>
+    </node>
+
+    <!-- Launch the rosapi node -->
+    <node name="rosapi" pkg="rosapi" type="rosapi_node" output="screen">
+        <param name="topics_glob" value="/*" />
+        <param name="services_glob" value="/*" />
+        <param name="params_glob" value="/*" />
+    </node>
+</launch>
