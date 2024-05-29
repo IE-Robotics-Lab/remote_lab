@@ -2,7 +2,7 @@
     <!-- Launch the avt_vimba_camera using its provided launch file -->
     <include file="$(find avt_vimba_camera)/launch/mono_camera.launch">
         <arg name="ip" value="10.205.3.35" />
-        <arg name="camera_info_url" value="file:///home/haxybaxy/catkin_ws/src/remote_lab/config/ost.yaml"/>
+        <arg name="camera_info_url" value="file://$(find remote_lab)/config/ost.yaml"/>
     </include>
 
     <!-- Image rectification -->
