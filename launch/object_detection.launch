@@ -1,3 +1,3 @@
 <launch>
-  <node pkg="remote_lab" type="object_detection.py" name="object_detection" output="screen"/>
+  <node pkg="remote_lab" type="object_detection.py" name="aruco_tag_detection" output="screen"/>
 </launch>
