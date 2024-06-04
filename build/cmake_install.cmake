@@ -147,6 +147,14 @@ if("x${CMAKE_INSTALL_COMPONENT}x" STREQUAL "xUnspecifiedx" OR NOT CMAKE_INSTALL_
   file(INSTALL DESTINATION "${CMAKE_INSTALL_PREFIX}/lib/remote_lab" TYPE PROGRAM FILES "/home/haxybaxy/catkin_ws/src/remote_lab/build/catkin_generated/installspace/object_detection.py")
 endif()
 
+if("x${CMAKE_INSTALL_COMPONENT}x" STREQUAL "xUnspecifiedx" OR NOT CMAKE_INSTALL_COMPONENT)
+  file(INSTALL DESTINATION "${CMAKE_INSTALL_PREFIX}/lib/remote_lab" TYPE PROGRAM FILES "/home/haxybaxy/catkin_ws/src/remote_lab/build/catkin_generated/installspace/static_transform_broadcaster.py")
+endif()
+
+if("x${CMAKE_INSTALL_COMPONENT}x" STREQUAL "xUnspecifiedx" OR NOT CMAKE_INSTALL_COMPONENT)
+  file(INSTALL DESTINATION "${CMAKE_INSTALL_PREFIX}/lib/remote_lab" TYPE PROGRAM FILES "/home/haxybaxy/catkin_ws/src/remote_lab/build/catkin_generated/installspace/image_marker_node.py")
+endif()
+
 if(NOT CMAKE_INSTALL_LOCAL_ONLY)
   # Include the install script for each subdirectory.
   include("/home/haxybaxy/catkin_ws/src/remote_lab/build/gtest/cmake_install.cmake")

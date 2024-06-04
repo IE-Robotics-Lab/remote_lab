@@ -3,6 +3,8 @@
     <include file="$(find avt_vimba_camera)/launch/mono_camera.launch">
         <arg name="ip" value="10.205.3.35" />
         <arg name="camera_info_url" value="file://$(find remote_lab)/config/ost.yaml"/>
+        <arg name="gain_auto" value="Off"/>
+        <arg name="gain" value="1"/>
     </include>
 
     <!-- Image rectification -->
