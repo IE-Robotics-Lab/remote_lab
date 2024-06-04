@@ -11,6 +11,7 @@ find_package(catkin REQUIRED COMPONENTS
   rospy
   sensor_msgs
   std_msgs
+  tf
 )
 
 ## System dependencies are found with CMake's conventions
@@ -166,6 +167,8 @@ include_directories(
 
 catkin_install_python(PROGRAMS
     src/object_detection.py
+    src/static_transform_broadcaster.py
+    src/image_marker_node.py
     DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 

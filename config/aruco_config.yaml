@@ -1,0 +1,7 @@
+# ArUco Configuration Parameters
+marker_size: 0.9  # Size of the marker in meters
+dictionary_id: 0  # Dictionary ID (default 0 for DICT_4X4_50)
+max_detected_markers: 50
+show_rejected: false
+camera_frame: "camera_link"
+reference_frame: "base_link"

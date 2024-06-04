@@ -1,0 +1,17 @@
+<launch>
+  <node pkg="aruco_ros" type="marker_publisher" name="aruco_marker_publisher" output="screen">
+    <param name="camera_info_topic" value="/camera/camera_info"/>
+    <param name="image_topic" value="/image_rect_color"/>
+    <param name="marker_size" value="1.10"/>
+    <param name="dictionary_id" value="0"/>
+    <param name="reference_frame" value="base_link"/>
+    <param name="camera_frame" value="camera_link"/>
+  </node>
+
+  <node pkg="remote_lab" type="image_marker_node.py" name="image_marker_node" output="screen">
+    <param name="camera_image_topic" value="/image_rect_color"/>
+    <param name="output_image_topic" value="/camera/image_markers"/>
+  </node>
+
+  <rosparam file="$(find remote_lab)/config/ost.yaml" command="load" />
+</launch>
