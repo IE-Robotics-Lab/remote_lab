@@ -75,4 +75,4 @@ class ArucoTagDetection:
 
 if __name__ == '__main__':
     rospy.init_node('aruco_tag_detection', anonymous=True)
-    detector = ArucoTag
+

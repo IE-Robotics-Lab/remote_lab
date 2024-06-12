@@ -4,16 +4,10 @@
         <arg name="ip" value="10.205.3.35" />
         <arg name="camera_info_url" value="file://$(find remote_lab)/config/ost.yaml"/>
         <arg name="gain_auto" value="Off"/>
-        <arg name="gain" value="1"/>
+        <arg name="gain" value="0"/>
+        <arg name="acquisition_rate" value="20"/>
+        <arg name="image_proc" value="true"/>
     </include>
-
-    <!-- Image rectification -->
-    <node name="image_proc" pkg="image_proc" type="image_proc" output="screen">
-
-        <remap from="camera_info" to="/camera/camera_info"/>
-        <remap from="image_raw" to="/camera/image_raw"/>
-        <remap from="image_rect" to="/camera/image_rect"/>
-    </node>
 
     <!-- Launch the rosbridge_websocket node -->
     <node name="rosbridge_websocket" pkg="rosbridge_server" type="rosbridge_websocket" output="screen">

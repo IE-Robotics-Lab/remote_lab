@@ -167,8 +167,6 @@ include_directories(
 
 catkin_install_python(PROGRAMS
     src/object_detection.py
-    src/static_transform_broadcaster.py
-    src/image_marker_node.py
     DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 

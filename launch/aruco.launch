@@ -1,6 +1,0 @@
-<launch>
-  <!-- Start the ArUco marker detection node -->
-  <node pkg="remote_lab" type="object_detection.py" name="aruco_tag_detection" output="screen"/>
-  <!-- Start the static transform broadcaster -->
-  <node pkg="remote_lab" type="static_transform_broadcaster.py" name="static_transform_broadcaster" output="screen" />
-</launch>

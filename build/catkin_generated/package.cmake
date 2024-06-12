@@ -1,6 +1,6 @@
 set(_CATKIN_CURRENT_PACKAGE "remote_lab")
 set(remote_lab_VERSION "0.0.0")
-set(remote_lab_MAINTAINER "haxybaxy <haxybaxy@todo.todo>")
+set(remote_lab_MAINTAINER "haxybaxy <zaidksaheb@gmail.com>")
 set(remote_lab_PACKAGE_FORMAT "2")
 set(remote_lab_BUILD_DEPENDS "rospy" "sensor_msgs" "std_msgs" "tf" "aruco_ros")
 set(remote_lab_BUILD_EXPORT_DEPENDS "rospy" "sensor_msgs" "std_msgs")
