@@ -1,6 +1,10 @@
 # Ignore build and devel directories
 build/
 devel/
+build_isolated/
+devel_isolated/
+
+
 
 # Ignore logs and temporary files
 logs/
