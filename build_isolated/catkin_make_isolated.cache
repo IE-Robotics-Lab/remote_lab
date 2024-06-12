@@ -1,2 +1,0 @@
-
--G Unix Makefiles -DCATKIN_DEVEL_PREFIX=/home/haxybaxy/catkin_ws/src/remote_lab/devel_isolated -DCMAKE_INSTALL_PREFIX=/home/haxybaxy/catkin_ws/src/remote_lab/install_isolated
