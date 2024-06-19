@@ -1,34 +1,22 @@
 import rospy
 from sensor_msgs.msg import Image
+from visualization_msgs.msg import Marker
 from geometry_msgs.msg import Point
-from remote_lab.msg import Marker  # Import the custom message
-from std_msgs.msg import Header
 from cv_bridge import CvBridge, CvBridgeError
 import cv2 as cv
 import numpy as np
-from threading import Lock
+import tf
 
 class ArucoTagDetection:
     def __init__(self):
         self.bridge = CvBridge()
-        self.image_sub = rospy.Subscriber("/camera/image_rect_color", Image, self.image_callback)
+        self.image_sub = rospy.Subscriber("camera/image_rect_color", Image, self.image_callback)
         self.image_pub = rospy.Publisher("/image_with_aruco", Image, queue_size=10)
-        self.marker_pub = rospy.Publisher("/aruco_marker_positions", Marker, queue_size=10)  # Publisher for marker positions
-
+        self.marker_pub = rospy.Publisher("/aruco_marker", Marker, queue_size=10)
         self.dictionary = cv.aruco.getPredefinedDictionary(cv.aruco.DICT_ARUCO_ORIGINAL)
         self.parameters = cv.aruco.DetectorParameters()
         self.detector = cv.aruco.ArucoDetector(self.dictionary, self.parameters)
-
-        self.camera_matrix = np.array([[836.527947, 0, 808.422471], [0, 839.354724, 588.0755], [0, 0, 1]])  # Replace with your calibration values
-        self.dist_coeffs = np.array([-0.262186, 0.048066, 0.001499, -0.000339, 0.000000])  # Replace with your distortion coefficients
-
-        self.marker_publishers = {}
-        self.lock = Lock()
-
-    def create_marker_publisher(self, marker_id):
-        topic_name = f"/aruco_marker_{marker_id}"
-        if topic_name not in self.marker_publishers:
-            self.marker_publishers[topic_name] = rospy.Publisher(topic_name, Marker, queue_size=10)
+        self.tf_broadcaster = tf.TransformBroadcaster()
 
     def image_callback(self, data):
         try:
@@ -44,17 +32,46 @@ class ArucoTagDetection:
             # Draw rectangles around the detected markers
             cv.aruco.drawDetectedMarkers(cv_image, markerCorners, markerIds)
 
-            for marker_id, corners in zip(markerIds.flatten(), markerCorners):
-                self.create_marker_publisher(marker_id)
+            for marker_id, corners in zip(markerIds, markerCorners):
                 marker = Marker()
-                marker.header = Header()
                 marker.header.frame_id = "camera_frame"  # Set the appropriate frame
                 marker.header.stamp = rospy.Time.now()
+                marker.ns = "aruco_markers"
                 marker.id = int(marker_id)
-                marker.position = Point(corners[0][0][0], corners[0][0][1], 0)  # Use the first corner for the position
+                marker.type = Marker.LINE_STRIP
+                marker.action = Marker.ADD
+                marker.scale.x = 0.01  # Line width
+                marker.color.r = 1.0
+                marker.color.g = 0.0
+                marker.color.b = 0.0
+                marker.color.a = 1.0
+
+                # Add the corners to the marker
+                for corner in corners[0]:
+                    point = Point()
+                    point.x = corner[0]
+                    point.y = corner[1]
+                    point.z = 0  # Assuming the marker is in a 2D plane
+                    marker.points.append(point)
+
+                # Close the loop by adding the first point again
+                point = Point()
+                point.x = corners[0][0][0]
+                point.y = corners[0][0][1]
+                point.z = 0
+                marker.points.append(point)
 
                 # Publish the marker
-                self.marker_publishers[f"/aruco_marker_{marker_id}"].publish(marker)
+                self.marker_pub.publish(marker)
+
+                # Broadcast the transform from the marker to the world frame
+                self.tf_broadcaster.sendTransform(
+                    (corners[0][0][0], corners[0][0][1], 0),
+                    tf.transformations.quaternion_from_euler(0, 0, 0),
+                    rospy.Time.now(),
+                    f"marker_{marker_id}",
+                    "camera_frame"
+                )
 
         try:
             image_with_aruco = self.bridge.cv2_to_imgmsg(cv_image, "bgr8")
