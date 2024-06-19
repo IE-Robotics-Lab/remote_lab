@@ -170,7 +170,7 @@ find_package(OpenCV REQUIRED)
 
 catkin_install_python(PROGRAMS
     src/object_detection.py
-    src/tycho_tracker.py
+    src/static_transform.py
     DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 
