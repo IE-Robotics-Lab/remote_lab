@@ -1,5 +1,7 @@
 import rospy
 from sensor_msgs.msg import Image
+from geometry_msgs.msg import Point
+from remote_lab.msg import Marker  # Import the custom message
 from cv_bridge import CvBridge, CvBridgeError
 import cv2 as cv
 import numpy as np
@@ -11,6 +13,8 @@ class ArucoTagDetection:
         self.bridge = CvBridge()
         self.image_sub = rospy.Subscriber("/camera/image_rect_color", Image, self.image_callback)
         self.image_pub = rospy.Publisher("/image_with_aruco", Image, queue_size=10)
+        self.marker_pub = rospy.Publisher("/aruco_marker_positions", Marker, queue_size=10)  # Publisher for marker positions
+
         self.dictionary = cv.aruco.getPredefinedDictionary(cv.aruco.DICT_ARUCO_ORIGINAL)
         self.parameters = cv.aruco.DetectorParameters()
         self.detector = cv.aruco.ArucoDetector(self.dictionary, self.parameters)
@@ -50,6 +54,12 @@ class ArucoTagDetection:
 
                     for i in range(len(markerIds)):
                         cv.drawFrameAxes(cv_image, self.camera_matrix, self.dist_coeffs, rvecs[i], tvecs[i], 0.05)
+
+                        # Publish marker position
+                        marker_msg = Marker()
+                        marker_msg.id = int(markerIds[i])
+                        marker_msg.position = Point(tvecs[i][0][0], tvecs[i][0][1], tvecs[i][0][2])
+                        self.marker_pub.publish(marker_msg)
                 else:
                     rospy.loginfo("No markers detected")
 
