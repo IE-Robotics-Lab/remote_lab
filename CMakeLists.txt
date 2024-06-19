@@ -119,7 +119,10 @@ catkin_package(
 include_directories(
 # include
   ${catkin_INCLUDE_DIRS}
+  ${OpenCV_INCLUDE_DIRS}
 )
+
+find_package(OpenCV REQUIRED)
 
 ## Declare a C++ library
 # add_library(${PROJECT_NAME}
@@ -167,6 +170,7 @@ include_directories(
 
 catkin_install_python(PROGRAMS
     src/object_detection.py
+    src/tycho_tracker.py
     DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 

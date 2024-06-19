@@ -1,0 +1,3 @@
+<launch>
+  <node pkg="remote_lab" type="tycho_tracker.py" name="tracker" output="screen"/>
+</launch>

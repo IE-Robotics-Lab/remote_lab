@@ -3,13 +3,14 @@ from sensor_msgs.msg import Image
 from cv_bridge import CvBridge, CvBridgeError
 import cv2 as cv
 import numpy as np
+from time import sleep
 
 class ArucoTagDetection:
     def __init__(self):
         self.bridge = CvBridge()
         self.image_sub = rospy.Subscriber("/camera/image_rect_color", Image, self.image_callback)
         self.image_pub = rospy.Publisher("/image_with_aruco", Image, queue_size=10)
-        self.dictionary = cv.aruco.getPredefinedDictionary(cv.aruco.DICT_4X4_250)
+        self.dictionary = cv.aruco.getPredefinedDictionary(cv.aruco.DICT_ARUCO_ORIGINAL)
         self.parameters = cv.aruco.DetectorParameters()
         self.detector = cv.aruco.ArucoDetector(self.dictionary, self.parameters)
 
@@ -28,6 +29,7 @@ class ArucoTagDetection:
             cv.aruco.drawDetectedMarkers(cv_image, markerCorners, markerIds)
         else:
             rospy.loginfo("No markers detected")
+            sleep(6)
 
         try:
             image_with_aruco = self.bridge.cv2_to_imgmsg(cv_image, "bgr8")
