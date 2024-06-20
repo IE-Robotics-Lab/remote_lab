@@ -33,6 +33,9 @@ class ArucoTagDetection:
         self.processing_thread.daemon = True
         self.processing_thread.start()
 
+        # Define the list of marker IDs you want to detect
+        self.allowed_marker_ids = [582]  # Replace with your desired marker IDs
+
     def image_callback(self, data):
         try:
             cv_image = self.bridge.imgmsg_to_cv2(data, "bgr8")
@@ -53,29 +56,34 @@ class ArucoTagDetection:
                 markerCorners, markerIds, rejectedCandidates = self.detector.detectMarkers(cv_image)
 
                 if markerIds is not None:
-                    cv.aruco.drawDetectedMarkers(cv_image, markerCorners, markerIds)
-                    rvecs, tvecs, _ = cv.aruco.estimatePoseSingleMarkers(markerCorners, 0.14, self.camera_matrix, self.dist_coeffs)
+                    valid_indices = [i for i, marker_id in enumerate(markerIds) if marker_id[0] in self.allowed_marker_ids]
+                    markerCorners = [markerCorners[i] for i in valid_indices]
+                    markerIds = np.array([markerIds[i] for i in valid_indices])
 
-                    for i in range(len(markerIds)):
-                        cv.drawFrameAxes(cv_image, self.camera_matrix, self.dist_coeffs, rvecs[i], tvecs[i], 0.05)
+                    if markerIds:
+                        cv.aruco.drawDetectedMarkers(cv_image, markerCorners, markerIds)
+                        rvecs, tvecs, _ = cv.aruco.estimatePoseSingleMarkers(markerCorners, 0.14, self.camera_matrix, self.dist_coeffs)
 
-                        # Publish marker position
-                        marker_msg = Marker()
-                        marker_msg.id = int(markerIds[i])
-                        marker_msg.position = Point(tvecs[i][0][0], tvecs[i][0][1], tvecs[i][0][2])
-                        self.marker_pub.publish(marker_msg)
+                        for i in range(len(markerIds)):
+                            cv.drawFrameAxes(cv_image, self.camera_matrix, self.dist_coeffs, rvecs[i], tvecs[i], 0.05)
 
-                        # Publish PointStamped for Visualization
-                        point_msg = PointStamped()
-                        point_msg.header.stamp = rospy.Time.now()
-                        point_msg.header.frame_id = "camera_frame"  # Ensure this frame ID matches the static transform
-                        point_msg.point.x = tvecs[i][0][0]
-                        point_msg.point.y = tvecs[i][0][1]
-                        point_msg.point.z = tvecs[i][0][2]
-                        self.point_pub.publish(point_msg)
+                            # Publish marker position
+                            marker_msg = Marker()
+                            marker_msg.id = int(markerIds[i])
+                            marker_msg.position = Point(tvecs[i][0][0], tvecs[i][0][1], tvecs[i][0][2])
+                            self.marker_pub.publish(marker_msg)
 
-                        # Broadcast transform
-                        self.broadcast_transform(tvecs[i], rvecs[i], markerIds[i])
+                            # Publish PointStamped for Visualization
+                            point_msg = PointStamped()
+                            point_msg.header.stamp = rospy.Time.now()
+                            point_msg.header.frame_id = "camera_frame"  # Ensure this frame ID matches the static transform
+                            point_msg.point.x = tvecs[i][0][0]
+                            point_msg.point.y = tvecs[i][0][1]
+                            point_msg.point.z = tvecs[i][0][2]
+                            self.point_pub.publish(point_msg)
+
+                            # Broadcast transform
+                            self.broadcast_transform(tvecs[i], rvecs[i], markerIds[i])
                 else:
                     rospy.loginfo("No markers detected")
 
