@@ -29,9 +29,15 @@ class ArucoTagDetection:
 
         self.tf_broadcaster = tf.TransformBroadcaster()
 
+        self.marker_transforms = queue.Queue(maxsize=10)  # Queue for marker transforms
+
         self.processing_thread = Thread(target=self.process_images)
         self.processing_thread.daemon = True
         self.processing_thread.start()
+
+        self.broadcasting_thread = Thread(target=self.broadcast_transforms)
+        self.broadcasting_thread.daemon = True
+        self.broadcasting_thread.start()
 
         # Define the list of marker IDs you want to detect
         self.allowed_marker_ids = [582]  # Replace with your desired marker IDs
@@ -43,7 +49,6 @@ class ArucoTagDetection:
             rospy.logerr(e)
             return
 
-        # Add the image to the queue without locking the entire process
         if not self.image_queue.full():
             self.image_queue.put(cv_image)
 
@@ -81,8 +86,9 @@ class ArucoTagDetection:
                             point_msg.point.z = tvecs[i][0][2]
                             self.point_pub.publish(point_msg)
 
-                            # Broadcast transform
-                            self.broadcast_transform(tvecs[i], rvecs[i], markerIds[i])
+                            # Add transform to queue
+                            if not self.marker_transforms.full():
+                                self.marker_transforms.put((tvecs[i], rvecs[i], markerIds[i]))
                 else:
                     rospy.loginfo("No markers detected")
 
@@ -91,6 +97,12 @@ class ArucoTagDetection:
                     self.image_pub.publish(image_with_aruco)
                 except CvBridgeError as e:
                     rospy.logerr(e)
+
+    def broadcast_transforms(self):
+        while not rospy.is_shutdown():
+            if not self.marker_transforms.empty():
+                tvec, rvec, marker_id = self.marker_transforms.get()
+                self.broadcast_transform(tvec, rvec, marker_id)
 
     def broadcast_transform(self, tvec, rvec, marker_id):
         # Convert rotation vector to quaternion
