@@ -65,7 +65,7 @@ class ArucoTagDetection:
                         marker_msg.position = Point(tvecs[i][0][0], tvecs[i][0][1], tvecs[i][0][2])
                         self.marker_pub.publish(marker_msg)
 
-                        # Publish PointStamped for RViz
+                        # Publish PointStamped for Visualization
                         point_msg = PointStamped()
                         point_msg.header.stamp = rospy.Time.now()
                         point_msg.header.frame_id = "camera_frame"  # Ensure this frame ID matches the static transform
