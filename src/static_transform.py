@@ -13,15 +13,8 @@ def static_transform_broadcaster():
         br.sendTransform((0.0, 0.0, 0.0),  # Translation (x, y, z)
                          (0.0, 0.0, 0.0, 1.0),  # Rotation as quaternion (x, y, z, w)
                          rospy.Time.now(),
-                         "world",  # Child frame
-                         "map")  # Parent frame
-
-        # Transform from world to camera_frame
-        br.sendTransform((0.0, 0.0, 0.0),  # Translation (x, y, z)
-                         (0.0, 0.0, 0.0, 1.0),  # Rotation as quaternion (x, y, z, w)
-                         rospy.Time.now(),
                          "camera_frame",  # Child frame
-                         "world")  # Parent frame
+                         "map")  # Parent frame
 
         rate.sleep()
 
