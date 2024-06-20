@@ -24,7 +24,7 @@ class ArucoTagDetection:
         self.camera_matrix = np.array([[836.527947, 0, 808.422471], [0, 839.354724, 588.0755], [0, 0, 1]])  # Replace with your calibration values
         self.dist_coeffs = np.array([-0.262186, 0.048066, 0.001499, -0.000339, 0.000000])  # Replace with your distortion coefficients
 
-        self.image_queue = queue.Queue(maxsize=1)
+        self.image_queue = queue.Queue(maxsize=5)
         self.lock = Lock()
 
         self.tf_broadcaster = tf.TransformBroadcaster()
@@ -43,15 +43,14 @@ class ArucoTagDetection:
             rospy.logerr(e)
             return
 
-        with self.lock:
-            if not self.image_queue.full():
-                self.image_queue.put(cv_image)
+        # Add the image to the queue without locking the entire process
+        if not self.image_queue.full():
+            self.image_queue.put(cv_image)
 
     def process_images(self):
         while not rospy.is_shutdown():
             if not self.image_queue.empty():
-                with self.lock:
-                    cv_image = self.image_queue.get()
+                cv_image = self.image_queue.get()
 
                 markerCorners, markerIds, rejectedCandidates = self.detector.detectMarkers(cv_image)
 
