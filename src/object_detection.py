@@ -60,7 +60,7 @@ class ArucoTagDetection:
 
                         # Publish PointStamped for Visualization
                         point_msg = PointStamped()
-                        point_msg.header.stamp = rospy.Time.now()
+                        point_msg.header.stamp = rospy.Time(0)
                         point_msg.header.frame_id = "camera_frame"  # Ensure this frame ID matches the static transform
                         point_msg.point.x = tvecs[i][0][0]
                         point_msg.point.y = tvecs[i][0][1]
