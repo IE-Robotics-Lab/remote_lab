@@ -59,7 +59,7 @@ class ArucoTagDetection:
                         quaternion = tf.transformations.quaternion_from_matrix(np.vstack((np.hstack((rotation_matrix, [[0], [0], [0]])), [0, 0, 0, 1])))
                         pose_msg.pose.orientation = Quaternion(*quaternion)
 
-                        # rospy.loginfo(f'Publishing marker pose: {pose_msg}') #log coords
+                        rospy.loginfo(f'Publishing marker pose: {pose_msg}') #log coords
                         self.pose_pub.publish(pose_msg)
 
                         # Broadcast the transform
@@ -90,7 +90,7 @@ class ArucoTagDetection:
 if __name__ == '__main__':
     rospy.init_node('aruco_tag_detection', anonymous=True)
     detector = ArucoTagDetection()
-    rate = rospy.Rate(10)  # Adjust the rate as necessary
+    rate = rospy.Rate(50)  # Adjust the rate as necessary
     try:
         while not rospy.is_shutdown():
             detector.process_images()
