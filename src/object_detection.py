@@ -5,6 +5,7 @@ from geometry_msgs.msg import Point, Pose, PoseStamped, Quaternion
 from cv_bridge import CvBridge, CvBridgeError
 import cv2 as cv
 import numpy as np
+from collections import deque
 
 class ArucoTagDetection:
     def __init__(self):
@@ -26,6 +27,9 @@ class ArucoTagDetection:
         self.allowed_marker_ids = [582]  # Replace with your desired marker IDs
 
         self.cv_image = None
+
+        # Buffer for smoothing
+        self.pose_buffer = {marker_id: deque(maxlen=5) for marker_id in self.allowed_marker_ids}
 
     def image_callback(self, data):
         try:
@@ -50,20 +54,25 @@ class ArucoTagDetection:
                     for i in range(len(markerIds)):
                         cv.drawFrameAxes(cv_image, self.camera_matrix, self.dist_coeffs, rvecs[i], tvecs[i], 0.05)
 
+                        marker_id = markerIds[i][0]
+
+                        # Apply smoothing
+                        self.pose_buffer[marker_id].append((tvecs[i], rvecs[i]))
+                        tvecs_smoothed, rvecs_smoothed = self.apply_smoothing(marker_id)
+
                         # Publish marker pose
                         pose_msg = PoseStamped()
                         pose_msg.header.stamp = rospy.Time.now()
                         pose_msg.header.frame_id = "camera_frame"  # Ensure this frame ID matches the static transform
-                        pose_msg.pose.position = Point(tvecs[i][0][0], tvecs[i][0][1], tvecs[i][0][2])
-                        rotation_matrix, _ = cv.Rodrigues(rvecs[i])
-                        quaternion = tf.transformations.quaternion_from_matrix(np.vstack((np.hstack((rotation_matrix, [[0], [0], [0]])), [0, 0, 0, 1])))
+                        pose_msg.pose.position = Point(tvecs_smoothed[0][0], tvecs_smoothed[0][1], tvecs_smoothed[0][2])
+                        rotation_matrix, _ = cv.Rodrigues(rvecs_smoothed)
+                        quaternion = self.rotation_matrix_to_quaternion(rotation_matrix)
                         pose_msg.pose.orientation = Quaternion(*quaternion)
 
-                        rospy.loginfo(f'Publishing marker pose: {pose_msg}') #log coords
                         self.pose_pub.publish(pose_msg)
 
                         # Broadcast the transform
-                        self.broadcast_transform(tvecs[i], rvecs[i], markerIds[i])
+                        self.broadcast_transform(tvecs_smoothed, quaternion, marker_id)
                 else:
                     rospy.loginfo("No valid markers detected")
 
@@ -73,11 +82,17 @@ class ArucoTagDetection:
             except CvBridgeError as e:
                 rospy.logerr(e)
 
-    def broadcast_transform(self, tvec, rvec, marker_id):
-        # Convert rotation vector to quaternion
-        rotation_matrix, _ = cv.Rodrigues(rvec)
-        quaternion = tf.transformations.quaternion_from_matrix(np.vstack((np.hstack((rotation_matrix, [[0], [0], [0]])), [0, 0, 0, 1])))
+    def apply_smoothing(self, marker_id):
+        tvecs = np.mean([pose[0] for pose in self.pose_buffer[marker_id]], axis=0)
+        rvecs = np.mean([pose[1] for pose in self.pose_buffer[marker_id]], axis=0)
+        return tvecs, rvecs
 
+    def rotation_matrix_to_quaternion(self, rotation_matrix):
+        m = np.eye(4)
+        m[:3, :3] = rotation_matrix
+        return tf.transformations.quaternion_from_matrix(m)
+
+    def broadcast_transform(self, tvec, quaternion, marker_id):
         # Broadcast the transform
         self.tf_broadcaster.sendTransform(
             (tvec[0][0], tvec[0][1], tvec[0][2]),
@@ -90,7 +105,7 @@ class ArucoTagDetection:
 if __name__ == '__main__':
     rospy.init_node('aruco_tag_detection', anonymous=True)
     detector = ArucoTagDetection()
-    rate = rospy.Rate(50)  # Adjust the rate as necessary
+    rate = rospy.Rate(10)  # Adjust the rate as necessary
     try:
         while not rospy.is_shutdown():
             detector.process_images()
