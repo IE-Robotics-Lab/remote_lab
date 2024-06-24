@@ -1,8 +1,7 @@
 import rospy
 import tf
 from sensor_msgs.msg import Image
-from geometry_msgs.msg import Point, PointStamped
-from remote_lab.msg import Marker  # Import the custom message
+from geometry_msgs.msg import Point, Pose, PoseStamped, Quaternion
 from cv_bridge import CvBridge, CvBridgeError
 import cv2 as cv
 import numpy as np
@@ -12,8 +11,7 @@ class ArucoTagDetection:
         self.bridge = CvBridge()
         self.image_sub = rospy.Subscriber("/camera/image_rect_color", Image, self.image_callback)
         self.image_pub = rospy.Publisher("/image_with_aruco", Image, queue_size=10)
-        self.marker_pub = rospy.Publisher("/aruco_marker_positions", Marker, queue_size=10)  # Publisher for marker positions
-        self.point_pub = rospy.Publisher("/aruco_marker_points", PointStamped, queue_size=10)  # Publisher for RViz points
+        self.pose_pub = rospy.Publisher("/aruco_marker_pose", PoseStamped, queue_size=10)  # Publisher for marker poses
 
         self.dictionary = cv.aruco.getPredefinedDictionary(cv.aruco.DICT_ARUCO_ORIGINAL)
         self.parameters = cv.aruco.DetectorParameters()
@@ -52,25 +50,22 @@ class ArucoTagDetection:
                     for i in range(len(markerIds)):
                         cv.drawFrameAxes(cv_image, self.camera_matrix, self.dist_coeffs, rvecs[i], tvecs[i], 0.05)
 
-                        # Publish marker position
-                        marker_msg = Marker()
-                        marker_msg.id = int(markerIds[i])
-                        marker_msg.position = Point(tvecs[i][0][0], tvecs[i][0][1], tvecs[i][0][2])
-                        self.marker_pub.publish(marker_msg)
+                        # Publish marker pose
+                        pose_msg = PoseStamped()
+                        pose_msg.header.stamp = rospy.Time.now()
+                        pose_msg.header.frame_id = "camera_frame"  # Ensure this frame ID matches the static transform
+                        pose_msg.pose.position = Point(tvecs[i][0][0], tvecs[i][0][1], tvecs[i][0][2])
+                        rotation_matrix, _ = cv.Rodrigues(rvecs[i])
+                        quaternion = tf.transformations.quaternion_from_matrix(np.vstack((np.hstack((rotation_matrix, [[0], [0], [0]])), [0, 0, 0, 1])))
+                        pose_msg.pose.orientation = Quaternion(*quaternion)
 
-                        # Publish PointStamped for Visualization
-                        point_msg = PointStamped()
-                        point_msg.header.stamp = rospy.Time(0)
-                        point_msg.header.frame_id = "camera_frame"  # Ensure this frame ID matches the static transform
-                        point_msg.point.x = tvecs[i][0][0]
-                        point_msg.point.y = tvecs[i][0][1]
-                        point_msg.point.z = tvecs[i][0][2]
-                        self.point_pub.publish(point_msg)
+                        # rospy.loginfo(f'Publishing marker pose: {pose_msg}') #log coords
+                        self.pose_pub.publish(pose_msg)
 
                         # Broadcast the transform
                         self.broadcast_transform(tvecs[i], rvecs[i], markerIds[i])
-            else:
-                rospy.loginfo("No markers detected")
+                else:
+                    rospy.loginfo("No valid markers detected")
 
             try:
                 image_with_aruco = self.bridge.cv2_to_imgmsg(cv_image, "bgr8")
