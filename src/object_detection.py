@@ -49,10 +49,18 @@ class ArucoTagDetection:
 
                 if markerIds:
                     cv.aruco.drawDetectedMarkers(cv_image, markerCorners, markerIds)
-                    rvecs, tvecs, _ = cv.aruco.estimatePoseSingleMarkers(markerCorners, 0.14, self.camera_matrix, self.dist_coeffs)
+                    try:
+                        rvecs, tvecs, _ = cv.aruco.estimatePoseSingleMarkers(markerCorners, 0.14, self.camera_matrix, self.dist_coeffs)
+                    except Exception as e:
+                        rospy.logerr("Pose estimation error: %s", e)
+                        return
 
                     for i in range(len(markerIds)):
-                        cv.drawFrameAxes(cv_image, self.camera_matrix, self.dist_coeffs, rvecs[i], tvecs[i], 0.05)
+                        try:
+                            cv.drawFrameAxes(cv_image, self.camera_matrix, self.dist_coeffs, rvecs[i], tvecs[i], 0.05)
+                        except Exception as e:
+                            rospy.logerr("Error drawing axes: %s", e)
+                            continue
 
                         marker_id = markerIds[i][0]
 
