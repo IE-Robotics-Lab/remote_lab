@@ -6,9 +6,12 @@ from cv_bridge import CvBridge, CvBridgeError
 import cv2 as cv
 import numpy as np
 from collections import deque
+import tf2_ros
+import tf2_geometry_msgs
 
 class ArucoTagDetection:
     def __init__(self):
+        self.camera_height = 2.5
         self.bridge = CvBridge()
         self.image_sub = rospy.Subscriber("/camera/image_rect_color", Image, self.image_callback)
         self.image_pub = rospy.Publisher("/image_with_aruco", Image, queue_size=10)
@@ -22,6 +25,8 @@ class ArucoTagDetection:
         self.dist_coeffs = np.array([-0.262186, 0.048066, 0.001499, -0.000339, 0.000000])  # Replace with your distortion coefficients
 
         self.tf_broadcaster = tf.TransformBroadcaster()
+        self.tf_buffer = tf2_ros.Buffer()
+        self.tf_listener = tf2_ros.TransformListener(self.tf_buffer)
 
         # Define the list of marker IDs you want to detect
         self.allowed_marker_ids = [582]  # Replace with your desired marker IDs
@@ -36,6 +41,7 @@ class ArucoTagDetection:
             self.cv_image = self.bridge.imgmsg_to_cv2(data, "bgr8")
         except CvBridgeError as e:
             rospy.logerr(e)
+
 
     def process_images(self):
         if self.cv_image is not None:
@@ -72,12 +78,18 @@ class ArucoTagDetection:
                         pose_msg = PoseStamped()
                         pose_msg.header.stamp = rospy.Time.now()
                         pose_msg.header.frame_id = "camera_frame"  # Ensure this frame ID matches the static transform
-                        pose_msg.pose.position = Point(tvecs_smoothed[0][0], tvecs_smoothed[0][1], tvecs_smoothed[0][2])
+                        pose_msg.pose.position = Point(tvecs_smoothed[0][0], tvecs_smoothed[0][1], tvecs_smoothed[0][2] + self.camera_height)
                         rotation_matrix, _ = cv.Rodrigues(rvecs_smoothed)
                         quaternion = self.rotation_matrix_to_quaternion(rotation_matrix)
                         pose_msg.pose.orientation = Quaternion(*quaternion)
 
-                        self.pose_pub.publish(pose_msg)
+                        # Transform pose to world frame
+                        try:
+                            transform = self.tf_buffer.lookup_transform('world', 'camera_frame', rospy.Time(0), rospy.Duration(1.0))
+                            pose_msg_world = tf2_geometry_msgs.do_transform_pose(pose_msg, transform)
+                            self.pose_pub.publish(pose_msg_world)
+                        except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException) as e:
+                            rospy.logerr("Transform error: %s", e)
 
                         # Broadcast the transform
                         self.broadcast_transform(tvecs_smoothed, quaternion, marker_id)
@@ -103,7 +115,7 @@ class ArucoTagDetection:
     def broadcast_transform(self, tvec, quaternion, marker_id):
         # Broadcast the transform
         self.tf_broadcaster.sendTransform(
-            (tvec[0][0], tvec[0][1], tvec[0][2]),
+            (tvec[0][0], tvec[0][1], tvec[0][2] + self.camera_height),
             quaternion,
             rospy.Time.now(),
             f"marker_{marker_id}",
