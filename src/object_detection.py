@@ -11,7 +11,7 @@ import tf2_geometry_msgs
 
 class ArucoTagDetection:
     def __init__(self):
-        self.camera_height = 2.5
+        self.camera_height = 2.65
         self.bridge = CvBridge()
         self.image_sub = rospy.Subscriber("/camera/image_rect_color", Image, self.image_callback)
         self.image_pub = rospy.Publisher("/image_with_aruco", Image, queue_size=10)
@@ -56,7 +56,7 @@ class ArucoTagDetection:
                 if markerIds:
                     cv.aruco.drawDetectedMarkers(cv_image, markerCorners, markerIds)
                     try:
-                        rvecs, tvecs, _ = cv.aruco.estimatePoseSingleMarkers(markerCorners, 0.14, self.camera_matrix, self.dist_coeffs)
+                        rvecs, tvecs, _ = cv.aruco.estimatePoseSingleMarkers(markerCorners, 0.83, self.camera_matrix, self.dist_coeffs)
                     except Exception as e:
                         rospy.logerr("Pose estimation error: %s", e)
                         return
