@@ -1,13 +1,17 @@
+# The parameters for the ArUco marker detection go here
+
+# Camera Matrix and Distortion Coefficients here are obtained by calibrating the rectified image view
 camera_matrix: [[540.734833, 0.000000, 808.435922], [0.000000, 665.360297, 596.629675], [0.000000, 0.000000, 1.000000]]
 distortion_coefficients: [-0.040286, 0.011029, 0.004940, -0.001410, 0.000000]
 
-image_sub: "/camera/image_rect_color"
-rate: 50
+image_sub: "/camera/image_rect_color" # Rectified image topic
+rate: 50 # ROS publish rate
 
-aruco_dict: "DICT_ARUCO_ORIGINAL"
-allowed_marker_ids: [582]
-marker_length: 0.14
+aruco_dict: "DICT_ARUCO_ORIGINAL" # ArUco marker dictionary
+allowed_marker_ids: [582] # Allowed ArUco marker IDs
+marker_length: 0.14 # Marker side length in meters
 
+# Coordinates are obtained by measuring distance in meters from optitrack origin to the location of the camera in the real world
 camera_location:
   x_coord: 2.8
   y_coord: 0.95

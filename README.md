@@ -3,7 +3,7 @@
 
 ## Overview
 
-`remote_lab` is a ROS package designed for ArUco marker detection, VRPN client integration, and camera handling using the AVT Vimba camera driver. The package includes nodes for detecting ArUco markers, transforming coordinates, and integrating with an OptiTrack system via VRPN.
+`remote_lab` is a ROS package designed for ArUco marker detection, OptiTrack integration, and camera handling using the AVT Vimba camera driver for use at the IE Robotics Lab. The package detects ArUco Markers, publishes their poses with TF so they can be visualized with RViz, and aligns the camera frame with the OptiTrack's world frame.
 
 ## Installation
 
@@ -13,7 +13,7 @@ Before installing this package, make sure you have the following dependencies in
 
 - ROS (Robot Operating System)
 - OpenCV
-- Vimba SDK (for AVT Vimba camera)
+- Vimba SDK for AVT Vimba camera ([refer to this guide](https://github.com/astuff/avt_vimba_camera))
 - Python packages: `rospy`, `cv_bridge`, `tf`, `sensor_msgs`, `std_msgs`, `geometry_msgs`, `image_transport`, `message_generation`
 - ROS packages: `vrpn_client_ros`, `rosbridge_server`, `rosapi`, `avt_vimba_camera`
 
@@ -53,7 +53,7 @@ source devel/setup.bash
 
 ```bash
 cd ~/catkin_ws/src
-git clone https://github.com/IE-Robotics-Lab/remotelab.git
+git clone https://github.com/IE-Robotics-Lab/remote_lab.git
 ```
 
 2. Build the workspace:
@@ -73,25 +73,25 @@ source devel/setup.bash
 
 ### Running the Nodes
 
-#### 3. AVT Vimba Camera and Rosbridge
+#### 1. AVT Vimba Camera and Rosbridge
 
-This launch file starts the AVT Vimba camera and the rosbridge server.
+The `start_camera.launch` launch file starts the AVT Vimba camera and the rosbridge server in the same node.
 
 ```bash
 roslaunch remote_lab start_camera.launch
 ```
 
-#### 2. VRPN Client
+#### 2. OptiTrack Client
 
-This node integrates with an OptiTrack system via VRPN.
+The `optitrack.launch` launch file starts the OptiTrack node which publishes the positions of the markers and the world frame, you can find more info [here](https://github.com/IE-Robotics-Lab/optitrack-ros-data-publisher).
 
 ```bash
 roslaunch remote_lab optitrack.launch
 ```
 
-#### 1. ArUco Marker Detection
+#### 3. ArUco Marker Detection
 
-This node detects ArUco markers in the camera feed.
+The `aruco_detection.launch` launch file starts the ArUco detecion node which detects ArUco markers in the camera feed and publishes their poses to TF.
 
 ```bash
 roslaunch remote_lab aruco_detection.launch
@@ -99,29 +99,28 @@ roslaunch remote_lab aruco_detection.launch
 
 ### Configurations
 
-The `remote_lab/config/camera_params.yaml` file contains the camera calibration parameters and other configurable settings:
+The `camera_calibration.yaml` file contains the camera calibration data which is obtained by following [this guide](https://github.com/IE-Robotics-Lab/camera_calibration_guide). You will need to calibrate the camera again using the rectified image feed instead of the raw feed to obtain the camera matrix and distortion coefficients needed to track the aruco markers properly.
+
+The `remote_lab/config/params.yaml` file contains the parameters needed for the ArUco tag detection and other configurable settings:
 
 ```yaml
+# Camera Matrix and Distortion Coefficients here are obtained by calibrating the rectified image view
 camera_matrix: [[540.734833, 0.000000, 808.435922], [0.000000, 665.360297, 596.629675], [0.000000, 0.000000, 1.000000]]
 distortion_coefficients: [-0.040286, 0.011029, 0.004940, -0.001410, 0.000000]
-marker_length: 0.14
-allowed_marker_ids: [1, 2, 3, 4]
-image_sub: "/camera/image_raw"
-rate: 10
-aruco_dict: "DICT_6X6_250"
-tvecs_adjustment: 
-  x: 2.8
-  y: 0.95
-  z: 2.7
+
+image_sub: "/camera/image_rect_color" # Rectified image topic
+rate: 50 # ROS publish rate
+
+aruco_dict: "DICT_ARUCO_ORIGINAL" # ArUco marker dictionary
+allowed_marker_ids: [582] # Allowed ArUco marker IDs
+marker_length: 0.14 # Marker side length in meters
+
+# Coordinates are obtained by measuring distance in meters from optitrack origin to the location of the camera in the real world
+camera_location:
+  x_coord: 2.8
+  y_coord: 0.95
+  z_coord: 2.7
 ```
-
-### Launch Files
-
-- **start_camera.launch**: Includes the AVT Vimba camera launch file and starts the rosbridge server.
-- **optitrack.launch**: Launches the VRPN client node for OptiTrack integration.
-- **aruco_detection.launch**: Launches the ArUco marker detection node and a static transform publisher.
-
-
 
 ## Contributing
 
