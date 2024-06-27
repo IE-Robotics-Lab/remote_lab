@@ -1,8 +1,4 @@
-Sure! Here is the updated README file, including instructions on how to create a catkin workspace:
 
-### README.md
-
-```markdown
 # remote_lab
 
 ## Overview
@@ -26,12 +22,12 @@ Before installing this package, make sure you have the following dependencies in
 ```bash
 # Update and install dependencies
 sudo apt-get update
-sudo apt-get install ros-<ros-distro>-cv-bridge ros-<ros-distro>-tf ros-<ros-distro>-sensor-msgs ros-<ros-distro>-std-msgs ros-<ros-distro>-geometry-msgs ros-<ros-distro>-image-transport ros-<ros-distro>-message-generation ros-<ros-distro>-vrpn-client-ros ros-<ros-distro>-rosbridge-server ros-<ros-distro>-rosapi
+sudo apt-get install ros-noetic-cv-bridge ros-noetic-tf ros-noetic-geometry-msgs ros-noetic-image-transport ros-noetic-message-generation ros-noetic-vrpn-client-ros ros-noetic-rosbridge-server ros-noetic-rosapi
 
 # Install Vimba SDK (follow AVT Vimba camera's official installation guide)
 ```
 
-Replace `<ros-distro>` with your ROS distribution (e.g., `noetic`, `melodic`).
+Replace `noetic` with your ROS distribution
 
 ### Creating a Catkin Workspace
 
@@ -77,12 +73,12 @@ source devel/setup.bash
 
 ### Running the Nodes
 
-#### 1. ArUco Marker Detection
+#### 3. AVT Vimba Camera and Rosbridge
 
-This node detects ArUco markers in the camera feed.
+This launch file starts the AVT Vimba camera and the rosbridge server.
 
 ```bash
-roslaunch remote_lab aruco_detection.launch
+roslaunch remote_lab start_camera.launch
 ```
 
 #### 2. VRPN Client
@@ -90,15 +86,15 @@ roslaunch remote_lab aruco_detection.launch
 This node integrates with an OptiTrack system via VRPN.
 
 ```bash
-roslaunch remote_lab vrpn_client.launch
+roslaunch remote_lab optitrack.launch
 ```
 
-#### 3. AVT Vimba Camera and Rosbridge
+#### 1. ArUco Marker Detection
 
-This launch file starts the AVT Vimba camera and the rosbridge server.
+This node detects ArUco markers in the camera feed.
 
 ```bash
-roslaunch remote_lab camera_rosbridge.launch
+roslaunch remote_lab aruco_detection.launch
 ```
 
 ### Configurations
@@ -121,9 +117,11 @@ tvecs_adjustment:
 
 ### Launch Files
 
+- **start_camera.launch**: Includes the AVT Vimba camera launch file and starts the rosbridge server.
+- **optitrack.launch**: Launches the VRPN client node for OptiTrack integration.
 - **aruco_detection.launch**: Launches the ArUco marker detection node and a static transform publisher.
-- **vrpn_client.launch**: Launches the VRPN client node for OptiTrack integration.
-- **camera_rosbridge.launch**: Includes the AVT Vimba camera launch file and starts the rosbridge server.
+
+
 
 ## Contributing
 
@@ -133,12 +131,3 @@ Contributions are welcome! Please submit a pull request or open an issue to disc
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## Acknowledgments
-
-- ROS (Robot Operating System)
-- OpenCV
-- Vimba SDK
-- ArUco Markers
-```
-
-This updated README now includes instructions on how to create a catkin workspace, as well as detailed steps for installing dependencies, building the package, and running the various nodes included in the package.
