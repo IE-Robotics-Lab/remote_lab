@@ -53,7 +53,7 @@ source devel/setup.bash
 
 ```bash
 cd ~/catkin_ws/src
-git clone <repository-url> remote_lab
+git clone https://github.com/IE-Robotics-Lab/remotelab.git
 ```
 
 2. Build the workspace:
