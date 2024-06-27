@@ -63,6 +63,12 @@ class ArucoTagDetection:
                             continue
 
                         marker_id = markerIds[i][0]
+                        
+                        tvecs[i][0][0] += 2.5
+                        tvecs[i][0][1] += 0.80
+                        tvecs[i][0][2] = 3.2 - tvecs[i][0][2]
+                        if tvecs[i][0][2] < 0:
+                            tvecs[i][0][2] = 0
 
                         # Apply smoothing
                         self.pose_buffer[marker_id].append((tvecs[i], rvecs[i]))
