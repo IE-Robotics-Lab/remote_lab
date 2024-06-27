@@ -39,6 +39,8 @@ class ArucoTagDetection:
         self.camera_matrix = np.array(params['camera_matrix'])  # Replace with your calibration values
         self.dist_coeffs = np.array(params['distortion_coefficients'])  # Replace with your distortion coefficients
 
+        self.camera_location = params['camera_location']
+
         self.tf_broadcaster = tf.TransformBroadcaster()
         self.ros_rate = params['rate'] # Broadcast rate
 
@@ -137,9 +139,9 @@ class ArucoTagDetection:
                         rvecs[i] = self.ensure_z_axis_up(rvecs[i]).reshape((3,))
 
                         #Adjusting translation vectors based on camera position
-                        tvecs[i][0][0] += 2.8
-                        tvecs[i][0][1] += 0.95
-                        tvecs[i][0][2] = 2.7 - tvecs[i][0][2]
+                        tvecs[i][0][0] += self.camera_location['x_coord']
+                        tvecs[i][0][1] += self.camera_location['y_coord']
+                        tvecs[i][0][2] = self.camera_location['z_coord'] - tvecs[i][0][2]
                         if tvecs[i][0][2] < 0:
                             tvecs[i][0][2] = 0
 
