@@ -1,7 +1,7 @@
 import rospy
 import tf
 from sensor_msgs.msg import Image
-from geometry_msgs.msg import Point, Pose, PoseStamped, Quaternion
+from geometry_msgs.msg import Point, PoseStamped, Quaternion
 from cv_bridge import CvBridge, CvBridgeError
 import cv2 as cv
 import numpy as np
@@ -18,8 +18,8 @@ class ArucoTagDetection:
         self.parameters = cv.aruco.DetectorParameters()
         self.detector = cv.aruco.ArucoDetector(self.dictionary, self.parameters)
 
-        self.camera_matrix = np.array([[836.527947, 0, 808.422471], [0, 839.354724, 588.0755], [0, 0, 1]])  # Replace with your calibration values
-        self.dist_coeffs = np.array([-0.262186, 0.048066, 0.001499, -0.000339, 0.000000])  # Replace with your distortion coefficients
+        self.camera_matrix = np.array([[540.734833, 0.000000, 808.435922], [0.000000, 665.360297, 596.629675], [0.000000, 0.000000, 1.000000]])  # Replace with your calibration values
+        self.dist_coeffs = np.array([-0.040286, 0.011029, 0.004940, -0.001410, 0.000000])  # Replace with your distortion coefficients
 
         self.tf_broadcaster = tf.TransformBroadcaster()
 
@@ -59,6 +59,16 @@ class ArucoTagDetection:
 
         return rvec
 
+    def apply_smoothing(self, marker_id):
+        tvecs = np.mean([pose[0] for pose in self.pose_buffer[marker_id]], axis=0)
+        rvecs = np.mean([pose[1] for pose in self.pose_buffer[marker_id]], axis=0)
+        return tvecs, rvecs
+
+    def rotation_matrix_to_quaternion(self, rotation_matrix):
+        m = np.eye(4)
+        m[:3, :3] = rotation_matrix
+        return tf.transformations.quaternion_from_matrix(m)
+
 
     def process_images(self):
         if self.cv_image is not None:
@@ -89,9 +99,9 @@ class ArucoTagDetection:
 
                         rvecs[i] = self.ensure_z_axis_up(rvecs[i]).reshape((3,))
 
-                        tvecs[i][0][0] += 2.5
-                        tvecs[i][0][1] += 0.80
-                        tvecs[i][0][2] = 3.2 - tvecs[i][0][2]
+                        tvecs[i][0][0] += 2.8
+                        tvecs[i][0][1] += 0.95
+                        tvecs[i][0][2] = 2.7 - tvecs[i][0][2]
                         if tvecs[i][0][2] < 0:
                             tvecs[i][0][2] = 0
 
@@ -120,16 +130,6 @@ class ArucoTagDetection:
                 self.image_pub.publish(image_with_aruco)
             except CvBridgeError as e:
                 rospy.logerr(e)
-
-    def apply_smoothing(self, marker_id):
-        tvecs = np.mean([pose[0] for pose in self.pose_buffer[marker_id]], axis=0)
-        rvecs = np.mean([pose[1] for pose in self.pose_buffer[marker_id]], axis=0)
-        return tvecs, rvecs
-
-    def rotation_matrix_to_quaternion(self, rotation_matrix):
-        m = np.eye(4)
-        m[:3, :3] = rotation_matrix
-        return tf.transformations.quaternion_from_matrix(m)
 
     def broadcast_transform(self, tvec, quaternion, marker_id):
         # Broadcast the transform
