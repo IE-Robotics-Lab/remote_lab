@@ -10,9 +10,9 @@ from collections import deque
 class ArucoTagDetection:
     def __init__(self):
         self.bridge = CvBridge()
-        self.image_sub = rospy.Subscriber("/camera/image_rect_color", Image, self.image_callback)
-        self.image_pub = rospy.Publisher("/image_with_aruco", Image, queue_size=10)
-        self.pose_pub = rospy.Publisher("/aruco_marker_pose", PoseStamped, queue_size=10)  # Publisher for marker poses
+        self.image_sub = rospy.Subscriber("/camera/image_rect_color", Image, self.image_callback) #Camera image feed to take from
+        self.image_pub = rospy.Publisher("/image_with_aruco", Image, queue_size=10) # Image topic with marker detection
+        self.pose_pub = rospy.Publisher("/aruco_marker_pose", PoseStamped, queue_size=10) # Publisher for marker poses
 
         self.dictionary = cv.aruco.getPredefinedDictionary(cv.aruco.DICT_ARUCO_ORIGINAL)
         self.parameters = cv.aruco.DetectorParameters()
@@ -28,17 +28,17 @@ class ArucoTagDetection:
 
         self.cv_image = None
 
-        # Buffer for smoothing
+        # Buffer for smoothing, increase deque max length for more smoothing
         self.pose_buffer = {marker_id: deque(maxlen=5) for marker_id in self.allowed_marker_ids}
 
-    def image_callback(self, data):
+    def image_callback(self, data): # Image callback function to covert from a ROS image to an OpenCV image
         try:
             self.cv_image = self.bridge.imgmsg_to_cv2(data, "bgr8")
         except CvBridgeError as e:
             rospy.logerr(e)
 
 
-    def ensure_z_axis_up(self, rvec):
+    def ensure_z_axis_up(self, rvec): #Helper function to fix Z axis as always facing the camera on RViz
         # Convert the rotation vector to a rotation matrix
         rotation_matrix, _ = cv.Rodrigues(rvec)
 
@@ -59,30 +59,46 @@ class ArucoTagDetection:
 
         return rvec
 
-    def apply_smoothing(self, marker_id):
+    def apply_smoothing(self, marker_id): # Applying smoothing by taking the mean of the last 5 vectors to remove any jittering
         tvecs = np.mean([pose[0] for pose in self.pose_buffer[marker_id]], axis=0)
         rvecs = np.mean([pose[1] for pose in self.pose_buffer[marker_id]], axis=0)
         return tvecs, rvecs
 
-    def rotation_matrix_to_quaternion(self, rotation_matrix):
+    def rotation_matrix_to_quaternion(self, rotation_matrix): # Converting rvecs into quaternions for RViz
+        # Create a 4x4 identity matrix
         m = np.eye(4)
+        # Insert 3x3 rotation matrix into top left corner of identity matrix
         m[:3, :3] = rotation_matrix
+        #4x4 matrix to quaternion
         return tf.transformations.quaternion_from_matrix(m)
 
+    def broadcast_transform(self, tvec, quaternion, marker_id):
+        # Broadcast the transform
+        self.tf_broadcaster.sendTransform(
+            (tvec[0][0], tvec[0][1], tvec[0][2]),
+            quaternion,
+            rospy.Time.now(),
+            f"marker_{marker_id}", #frame for each marker
+            "camera_frame"  # Parent frame, ensure this frame ID matches the static transform
+        )
 
     def process_images(self):
         if self.cv_image is not None:
             cv_image = self.cv_image.copy()
+            # Detect Markers in the image
             markerCorners, markerIds, rejectedCandidates = self.detector.detectMarkers(cv_image)
 
             if markerIds is not None:
+                # Filter out markers not in the allowed list
                 valid_indices = [i for i, marker_id in enumerate(markerIds) if marker_id[0] in self.allowed_marker_ids]
                 markerCorners = [markerCorners[i] for i in valid_indices]
                 markerIds = np.array([markerIds[i] for i in valid_indices])
 
                 if markerIds:
+                    # Draw detected markers on the image topic
                     cv.aruco.drawDetectedMarkers(cv_image, markerCorners, markerIds)
                     try:
+                        # Estimate the pose of the detected markers
                         rvecs, tvecs, _ = cv.aruco.estimatePoseSingleMarkers(markerCorners, 0.14, self.camera_matrix, self.dist_coeffs)
                     except Exception as e:
                         rospy.logerr("Pose estimation error: %s", e)
@@ -90,6 +106,7 @@ class ArucoTagDetection:
 
                     for i in range(len(markerIds)):
                         try:
+                            # Draw coordinate axes on the markers
                             cv.drawFrameAxes(cv_image, self.camera_matrix, self.dist_coeffs, rvecs[i], tvecs[i], 0.05)
                         except Exception as e:
                             rospy.logerr("Error drawing axes: %s", e)
@@ -97,8 +114,10 @@ class ArucoTagDetection:
 
                         marker_id = markerIds[i][0]
 
+                        # Ensure z axis is always facing up on RViz
                         rvecs[i] = self.ensure_z_axis_up(rvecs[i]).reshape((3,))
 
+                        #Adjusting translation vectors based on camera position
                         tvecs[i][0][0] += 2.8
                         tvecs[i][0][1] += 0.95
                         tvecs[i][0][2] = 2.7 - tvecs[i][0][2]
@@ -109,7 +128,7 @@ class ArucoTagDetection:
                         self.pose_buffer[marker_id].append((tvecs[i], rvecs[i]))
                         tvecs_smoothed, rvecs_smoothed = self.apply_smoothing(marker_id)
 
-                        # Publish marker pose
+                        # Publish PoseStamped message for the marker
                         pose_msg = PoseStamped()
                         pose_msg.header.stamp = rospy.Time.now()
                         pose_msg.header.frame_id = "camera_frame"  # Ensure this frame ID matches the static transform
@@ -118,7 +137,7 @@ class ArucoTagDetection:
                         quaternion = self.rotation_matrix_to_quaternion(rotation_matrix)
                         pose_msg.pose.orientation = Quaternion(*quaternion)
 
-                        self.pose_pub.publish(pose_msg)
+                        self.pose_pub.publish(pose_msg) #Publish pose message into a topic
 
                         # Broadcast the transform
                         self.broadcast_transform(tvecs_smoothed, quaternion, marker_id)
@@ -131,20 +150,11 @@ class ArucoTagDetection:
             except CvBridgeError as e:
                 rospy.logerr(e)
 
-    def broadcast_transform(self, tvec, quaternion, marker_id):
-        # Broadcast the transform
-        self.tf_broadcaster.sendTransform(
-            (tvec[0][0], tvec[0][1], tvec[0][2]),
-            quaternion,
-            rospy.Time.now(),
-            f"marker_{marker_id}",
-            "camera_frame"  # Parent frame
-        )
 
 if __name__ == '__main__':
     rospy.init_node('aruco_tag_detection', anonymous=True)
     detector = ArucoTagDetection()
-    rate = rospy.Rate(10)  # Adjust the rate as necessary
+    rate = rospy.Rate(50)  # Adjust the rate as necessary
     try:
         while not rospy.is_shutdown():
             detector.process_images()
