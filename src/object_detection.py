@@ -37,6 +37,29 @@ class ArucoTagDetection:
         except CvBridgeError as e:
             rospy.logerr(e)
 
+
+    def ensure_z_axis_up(self, rvec):
+        # Convert the rotation vector to a rotation matrix
+        rotation_matrix, _ = cv.Rodrigues(rvec)
+
+        # Define the desired z-axis direction (pointing up)
+        desired_z = np.array([0, 0, 1])
+
+        # Overwrite the current z-axis with the desired z-axis
+        rotation_matrix[:, 2] = desired_z
+
+        # Ensure the rotation matrix remains orthogonal
+        rotation_matrix[:, 0] = np.cross(rotation_matrix[:, 1], rotation_matrix[:, 2])
+        rotation_matrix[:, 0] /= np.linalg.norm(rotation_matrix[:, 0])
+        rotation_matrix[:, 1] = np.cross(rotation_matrix[:, 2], rotation_matrix[:, 0])
+        rotation_matrix[:, 1] /= np.linalg.norm(rotation_matrix[:, 1])
+
+        # Convert the adjusted rotation matrix back to a rotation vector
+        rvec, _ = cv.Rodrigues(rotation_matrix)
+
+        return rvec
+
+
     def process_images(self):
         if self.cv_image is not None:
             cv_image = self.cv_image.copy()
@@ -63,7 +86,9 @@ class ArucoTagDetection:
                             continue
 
                         marker_id = markerIds[i][0]
-                        
+
+                        rvecs[i] = self.ensure_z_axis_up(rvecs[i]).reshape((3,))
+
                         tvecs[i][0][0] += 2.5
                         tvecs[i][0][1] += 0.80
                         tvecs[i][0][2] = 3.2 - tvecs[i][0][2]
