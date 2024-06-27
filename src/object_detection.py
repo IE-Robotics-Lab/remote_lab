@@ -6,6 +6,18 @@ from cv_bridge import CvBridge, CvBridgeError
 import cv2 as cv
 import numpy as np
 from collections import deque
+import yaml
+import os
+
+def load_params():
+    # Get the directory of the current file
+    current_dir = os.path.dirname(__file__)
+    # Construct the full path to the YAML file
+    yaml_file = os.path.join(current_dir, '..', 'config', 'params.yaml')
+
+    with open(yaml_file, 'r') as file:
+        params = yaml.safe_load(file)
+    return params
 
 class ArucoTagDetection:
     def __init__(self):
@@ -18,8 +30,11 @@ class ArucoTagDetection:
         self.parameters = cv.aruco.DetectorParameters()
         self.detector = cv.aruco.ArucoDetector(self.dictionary, self.parameters)
 
-        self.camera_matrix = np.array([[540.734833, 0.000000, 808.435922], [0.000000, 665.360297, 596.629675], [0.000000, 0.000000, 1.000000]])  # Replace with your calibration values
-        self.dist_coeffs = np.array([-0.040286, 0.011029, 0.004940, -0.001410, 0.000000])  # Replace with your distortion coefficients
+        params = load_params()
+        rospy.loginfo(f"parameters loaded are: {params}")
+
+        self.camera_matrix = np.array(params['camera_matrix'])  # Replace with your calibration values
+        self.dist_coeffs = np.array(params['distortion_coefficients'])  # Replace with your distortion coefficients
 
         self.tf_broadcaster = tf.TransformBroadcaster()
 
