@@ -1,0 +1,5 @@
+<launch>
+  <!-- Start the ArUco marker detection node -->
+  <node pkg="remote_lab" type="aruco_detection.py" name="aruco_tag_detection" output="screen"/>
+  <node pkg="tf" type="static_transform_publisher" name="static_transform_publisher" args="0 0 0 0 0 0 1 world camera_frame 50" />
+</launch>
