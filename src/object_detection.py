@@ -21,25 +21,29 @@ def load_params():
 
 class ArucoTagDetection:
     def __init__(self):
+        params = load_params()
+        rospy.loginfo(f"parameters loaded are: {params}")
+
         self.bridge = CvBridge()
-        self.image_sub = rospy.Subscriber("/camera/image_rect_color", Image, self.image_callback) #Camera image feed to take from
+        self.image_sub = rospy.Subscriber(params['image_sub'], Image, self.image_callback) #Camera image feed to take from
         self.image_pub = rospy.Publisher("/image_with_aruco", Image, queue_size=10) # Image topic with marker detection
         self.pose_pub = rospy.Publisher("/aruco_marker_pose", PoseStamped, queue_size=10) # Publisher for marker poses
 
-        self.dictionary = cv.aruco.getPredefinedDictionary(cv.aruco.DICT_ARUCO_ORIGINAL)
+        self.dictionary = cv.aruco.getPredefinedDictionary(eval(f"cv.aruco.{params['aruco_dict']}")) # Aruco Dictionary
+        self.allowed_marker_ids = params['allowed_marker_ids'] # Allowed Markers IDs
+        self.marker_length = params['marker_length'] # Marker side length
+
         self.parameters = cv.aruco.DetectorParameters()
         self.detector = cv.aruco.ArucoDetector(self.dictionary, self.parameters)
-
-        params = load_params()
-        rospy.loginfo(f"parameters loaded are: {params}")
 
         self.camera_matrix = np.array(params['camera_matrix'])  # Replace with your calibration values
         self.dist_coeffs = np.array(params['distortion_coefficients'])  # Replace with your distortion coefficients
 
         self.tf_broadcaster = tf.TransformBroadcaster()
+        self.ros_rate = params['rate'] # Broadcast rate
 
         # Define the list of marker IDs you want to detect
-        self.allowed_marker_ids = [582]  # Replace with your desired marker IDs
+        # Replace with your desired marker IDs
 
         self.cv_image = None
 
@@ -114,7 +118,7 @@ class ArucoTagDetection:
                     cv.aruco.drawDetectedMarkers(cv_image, markerCorners, markerIds)
                     try:
                         # Estimate the pose of the detected markers
-                        rvecs, tvecs, _ = cv.aruco.estimatePoseSingleMarkers(markerCorners, 0.14, self.camera_matrix, self.dist_coeffs)
+                        rvecs, tvecs, _ = cv.aruco.estimatePoseSingleMarkers(markerCorners, self.marker_length, self.camera_matrix, self.dist_coeffs)
                     except Exception as e:
                         rospy.logerr("Pose estimation error: %s", e)
                         return
@@ -169,7 +173,7 @@ class ArucoTagDetection:
 if __name__ == '__main__':
     rospy.init_node('aruco_tag_detection', anonymous=True)
     detector = ArucoTagDetection()
-    rate = rospy.Rate(50)  # Adjust the rate as necessary
+    rate = rospy.Rate(detector.ros_rate)  # Adjust the rate as necessary
     try:
         while not rospy.is_shutdown():
             detector.process_images()
