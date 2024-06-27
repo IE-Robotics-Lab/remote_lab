@@ -176,6 +176,7 @@ find_package(OpenCV REQUIRED)
 
 catkin_install_python(PROGRAMS
     src/aruco_detection.py
+    src/static_transform.py
     DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 
